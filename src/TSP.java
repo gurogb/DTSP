@@ -113,37 +113,53 @@ public class TSP {
         System.out.println(content);
     }
 
+    
     public static void evolve() {
         //TODO:Write evolution code here.
     	//Step 1: Parent selection
-    	//ArrayList<Chromosome>  parents = parentSelection(chromosomes);
+    	/*Chromosome[]  parents = parentSelection(chromosomes);*/
 
     	
     	//Step 2: Reecombination of parents (crossover): parre to og to foreldre, gå iterativt gjennom og parre med en random
-    	Chromosome[] children = recombine(chromosomes);
-    	//Mutate
+    	/*Chromosome[] children = recombine(chromosomes);*/
     	
-    	//Evaluate new candidates
+    	//Step 3: Mutate
+    	Chromosome[] mutated = mutate(chromosomes);
     	
-    	//Survivor selection: tournament med 5, ta 2 beste
+    	Chromosome[] childAndPar = Stream.of(mutated, chromosomes).flatMap(Stream::of).toArray(Chromosome[]::new);
+    	//Step 4:Evaluate new candidates
+
+    	
+    	//Step 5:Survivor selection: tournament med 5, ta 2 beste
     	//System.out.println("Chromosomes lenght: " + chromosomes.length);
-    	//System.out.println("Children length: " + children.length);
-    	//Chromosome[] childAndPar = Stream.of(children, chromosomes).flatMap(Stream::of).toArray(Chromosome[]::new);
+    	//System.out.println("Children length: " + mutated.length);
     	
     	
+    	for(Chromosome c : childAndPar) {
+        	c.calculateCost(cities);
+        }
+
     	//System.out.println("Both length: " + childAndPar.length);
-    
     	//System.out.println("Running survivor selection");
-        Chromosome[] survivors = survivorSelection(children, 100);
+        Chromosome[] survivors = survivorSelection(childAndPar, 100);
+        /*for (int x = 0; x < populationSize; x++) {
+            survivors[x].calculateCost(cities);
+        }*/
+        
+        
+        
+        //boolean b = (chromosomes == survivors);
+        //System.out.println("Bool:"+ b);
+        
+        
+        
+        
+        
         //System.out.println("survivors length: " + survivors.length);
         
-    	//update chromosomes variable
+    	//Step6: Update chromosomes variable with new generation
         chromosomes = survivors;
-    	for (int x = 0; x < populationSize; x++) {
-            chromosomes[x].calculateCost(cities);
-        }
-        
-    	
+
     }
     
     public static Chromosome[] parentSelection(Chromosome[] chrom) {
@@ -250,54 +266,11 @@ public class TSP {
     		split2 = split1;
     		split1=temp;
     	}
+
+    		
+    	//crossover algorithm
     	
-    	//System.out.println(split1);//5
-    	//System.out.println(split2);//8
     	
-    	//do switch based on odd and even-segments
-    	//first from start to first split
-    	for(int i=0; i<split1;i++){
-    		if(split1%2==1) {
-    			//odd-number segment
-    			cities1[i]= p1.getCity(i);
-    			cities2[i]= p2.getCity(i);
-    		}else {
-    			//even-number segment
-    			cities1[i]= p2.getCity(i);
-    			cities2[i]= p1.getCity(i);
-    		}
-    	}
-    	//from split1 to split2
-    	int segmentLength = split2-split1; //3
-		//System.out.println("Segment Length: " + segmentLength);
-    	for(int i=split1;i<split2;i++) {
-    		
-    		if(segmentLength%2==1) {
-    			//odd-number segment
-    			cities1[i]= p1.getCity(i);
-    			cities2[i]= p2.getCity(i);
-    		}else {
-    			//even-number segment
-    			cities1[i]= p2.getCity(i);
-    			cities2[i]= p1.getCity(i);
-    		}
-    		
-    	}
-    	segmentLength = numCities-split1;
-    	//System.out.println("Segment Length: " + segmentLength);
-    	//from split2 to end
-    	for(int i=split2;i<numCities;i++) {
-    		if(segmentLength%2==1) {
-    			//odd-number segment
-    			cities1[i]= p1.getCity(i);
-    			cities2[i]= p2.getCity(i);
-    		}else {
-    			//even-number segment
-    			cities1[i]= p2.getCity(i);
-    			cities2[i]= p1.getCity(i);
-    		}
-    		
-    	}
     	p1.setCities(cities1);
     	p2.setCities(cities2);
     	
@@ -313,18 +286,162 @@ public class TSP {
     public static Chromosome[]  mutate(Chromosome[] chrom) {
     	//TODO: implement mutation method
     	
+    	int prob = 100;
+    	int r;
+    	Chromosome mutated;
+    	
+    	for(int i=0; i<chrom.length; i++) {
+    		r = getRandomNumberInRange(0,100);
+    		if(r>prob) {
+    			mutated = inverseMutation(chrom[i]);
+    			chrom[i] = mutated;
+    		}
+    	}
+    	
     	
     	//ES - adaptive mutation step sizes
-    	/*int x;
-    	double sigma = 0.5;
-    	for(int i=0;i<chrom.length;i++) {
-    		for(int j=0; j<chrom[i].getCities().length;j++) {
-    			x = chrom[i].getCity(j);
-    			
-    		}
-    	}*/
     	
     	return chrom;
+    }
+    
+    public static Chromosome inverseMutation(Chromosome c) {
+    	//Cut out random segment, inserts it in opposite direction
+    	int[] segment = c.getCities();
+    	int numCities = segment.length;
+    	
+    	int split1 = getRandomNumberInRange(0,numCities-2);//0-8
+    	int split2 = getRandomNumberInRange(1,numCities);//1-10
+    	
+    	
+    	//making sure they are in the right order
+    	if(split1>split2) {
+    		int temp = split2;
+    		split2 = split1;
+    		split1=temp;
+    	}
+    	
+    	//making sure they are not the same, or only one apart
+    	while(split2-split1 < 2) {
+    		split1 = getRandomNumberInRange(0,numCities-2);//0-8
+        	split2 = getRandomNumberInRange(1,numCities);//1-10
+    	}
+
+    	int[] inversed = new int[split2-split1];
+    	
+    	//creating inversed segment
+    	for(int i=0; i< inversed.length;i++ ){
+    		inversed[i] = segment[split2-i-1];
+    	}
+    	//System.out.println(Arrays.toString(inversed));
+    	
+    	//inserting inversed segment
+    	for(int i=0; i< inversed.length;i++) {
+    		segment[split1+i] = inversed[i];
+    	}
+    	
+    	/*System.out.println(Arrays.toString(original));
+    	System.out.println(split1);
+    	System.out.println(split2);*/
+    	c.setCities(segment);
+    	
+    	return c;
+    }
+    
+    public static Chromosome insertionMutation(Chromosome c) {
+    	//Selects random position, insert gene on that position into another random position
+    	int[] cities = c.getCities();
+    	System.out.println(Arrays.toString(cities));
+    	int numCities = cities.length;
+    	int[] result = new int[numCities];
+    	
+    	int takeIndex = getRandomNumberInRange(0,numCities-1);//0-9
+    	int putIndex = getRandomNumberInRange(0,numCities-1);//0-9   
+    	
+    	
+    	//making sure they are not the same
+    	while(takeIndex==putIndex) {
+        	putIndex = getRandomNumberInRange(0,numCities-1);//0-9
+    	}
+
+    	
+    	//System.out.println("Take:" +takeIndex);
+    	//System.out.println("Put; " + putIndex);
+
+    	int take = cities[takeIndex];
+    	
+    	
+    	if(takeIndex<putIndex) {      	
+        	for(int i=0; i<numCities;i++) {
+        		if(i<takeIndex) {
+        			//same as original
+        			result[i] = cities[i];
+        		}else if(takeIndex<=i&&i<putIndex) {
+        			//put number from index before
+        			result[i] = cities[i+1];
+        		}else if(i>putIndex) {
+        			//same as original
+        			result[i] = cities[i];
+        		}else if(i==putIndex) {
+        			result[putIndex] = take;
+        		}
+        	}        	
+    	}else {
+        	for(int i=0; i<numCities;i++) {
+        		if(i<putIndex) {
+        			//same as original
+        			result[i] = cities[i];
+        		}else if(putIndex<i&&i<=takeIndex) {
+        			//put number from index before
+        			result[i] = cities[i-1];
+        		}else if(i>takeIndex) {
+        			//same as original
+        			result[i] = cities[i];
+        		}else if(i==putIndex) {
+        			result[putIndex] = take;
+        		}
+        	}
+    	}
+    	
+    	//System.out.println(Arrays.toString(result));
+
+    	c.setCities(result);
+    	
+    	
+    	return c;
+    }
+    
+    public static Chromosome shiftingMutation(Chromosome c) {
+    	//TODO: Implement as mix of inverse and insert
+    	return c;
+    }
+    
+    public static Chromosome transpositionMutation(Chromosome c) {
+    	int[] cities = c.getCities();
+    	System.out.println(Arrays.toString(cities));
+    	int numCities = cities.length;
+    	int[] result = new int[numCities];
+    	
+    	int i1 = getRandomNumberInRange(0,numCities-1);//0-9
+    	int i2 = getRandomNumberInRange(0,numCities-1);//0-9   
+    	
+    	
+    	//making sure they are not the same
+    	while(i1==i2) {
+        	i2 = getRandomNumberInRange(0,numCities-1);//0-9
+    	}
+    	
+    	for(int i=0; i<numCities;i++) {
+    		if(i==i1) {
+    			result[i] = cities[i2];
+    		}else if(i==i2) {
+    			result[i] = cities[i1];
+    		}else {
+    			result[i] = cities[i];
+    		}
+    	}
+    	
+    	
+    	return c;
     }
     
     public static Chromosome[]  survivorSelection(Chromosome[] chrom, int numSurvivors) {
@@ -380,6 +497,7 @@ public class TSP {
     	Chromosome.sortChromosomes(participants, participants.length);
     	Chromosome[] winners = new Chromosome[winNum];
     	for(int i=0; i<winNum; i++) {
+    		//System.out.println("participant "+i +participants[i].getCost());;
     		winners[i] = participants[i];
     	}
     	
@@ -581,12 +699,10 @@ public class TSP {
 
                     //Run for 100 generations
                     while (generation < 100) {
-                        
-                        
-                        
-                    	System.out.println("Before Evoolve: " + Arrays.toString(chromosomes[0].getCities()));
+    
+                    	System.out.println("Before Evoolve: " + Arrays.toString(chromosomes[50].getCities()));
                         evolve();
-                        System.out.println("After Evolve:   " + Arrays.toString(chromosomes[0].getCities()));
+                        System.out.println("After Evolve:   " + Arrays.toString(chromosomes[50].getCities()));
                         //moves for every 5th generation
                         if(generation % 5 == 0 ) 
                             cities = MoveCities(originalCities); //Move from original cities, so they only move by a maximum of one unit.

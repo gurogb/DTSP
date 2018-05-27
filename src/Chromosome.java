@@ -12,27 +12,38 @@ class Chromosome {
      * The cost of following the cityList order of this chromosome.
      */
     protected double cost;
+    
+    protected City[] cities;
 
     /**
      * @param cities The order that this chromosome would visit the cities.
      */
     Chromosome(City[] cities) {
         Random generator = new Random();
-        cityList = new int[cities.length];
+        this.cityList = new int[cities.length];
         //cities are visited based on the order of an integer representation [o,n] of each of the n cities.
         for (int x = 0; x < cities.length; x++) {
-            cityList[x] = x;
+            this.cityList[x] = x;
         }
 
         //shuffle the order so we have a random initial order
-        for (int y = 0; y < cityList.length; y++) {
-            int temp = cityList[y];
+        for (int y = 0; y < this.cityList.length; y++) {
+            int temp = this.cityList[y];
             int randomNum = generator.nextInt(cityList.length);
-            cityList[y] = cityList[randomNum];
-            cityList[randomNum] = temp;
+            this.cityList[y] = this.cityList[randomNum];
+            this.cityList[randomNum] = temp;
         }
-
+        this.cities = cities;
         calculateCost(cities);
+        
+    }
+    
+    Chromosome(City[] cities, int[] cityList){
+    	this.cityList = cityList;
+    	this.cities = cities;
+    	
+    	calculateCost(cities);
+    	
     }
 
     /**
@@ -41,13 +52,13 @@ class Chromosome {
      * @param cities A list of cities.
      */
     void calculateCost(City[] cities) {
-        cost = 0;
+        this.cost = 0;
         for (int i = 0; i < cityList.length - 1; i++) {
-            double dist = cities[cityList[i]].proximity(cities[cityList[i + 1]]);
+            double dist = cities[this.cityList[i]].proximity(cities[this.cityList[i + 1]]);
             cost += dist;
         }
 
-        cost += cities[cityList[0]].proximity(cities[cityList[cityList.length - 1]]); //Adding return home
+        this.cost += cities[this.cityList[0]].proximity(cities[this.cityList[this.cityList.length - 1]]); //Adding return home
     }
 
     /**
@@ -77,8 +88,10 @@ class Chromosome {
      */
     void setCities(int[] list) {
         for (int i = 0; i < cityList.length; i++) {
-            cityList[i] = list[i];
+            this.cityList[i] = list[i];
         }
+        
+        this.calculateCost(this.cities);
     }
 
     /**
